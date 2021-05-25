@@ -5,6 +5,7 @@
 #####
 
 import zmq
+import sys
 from random import randrange
 from time import sleep
 
@@ -29,11 +30,11 @@ receiver = context.socket(zmq.PULL)
 receiver.connect("tcp://10.0.2.2:5555")
 
 sender = context.socket(zmq.PUSH)
-sender.connect("tcp://10.0.2.2:5555")
+sender.connect("tcp://10.0.2.2:5556")
 
 while True:
     #Collect tasks from the server
-    s = receiver.recv()
+    s = receiver.recv_pyobj()
 
     # Simple progress indicator for the viewer
     sys.stdout.write('.')
@@ -42,10 +43,10 @@ while True:
     print(f"Received {s} from the server.")
     #Determine which task should be run
     if s[0] == "createList":
-        sender.send(createList)
+        sender.send_pyobj(createList())
         print("Successfully sent task list.") 
     elif s[0] == "evenCalculator":
-        sender.send(evenCalculator(s[1]))
+        sender.send_pyobj(evenCalculator(s[1]))
         print("Sent evenCalculator return.")
     elif s[0] == "wait":
         sleep(5)
