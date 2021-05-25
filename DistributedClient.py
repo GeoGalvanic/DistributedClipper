@@ -12,15 +12,20 @@ from time import sleep
 #Functions that we will want to run once connected to server
 def createList():
     list = []
-    for number in range(10):
+    for number in range(15):
         list.append(randrange(10))
     return list
 
 def evenCalculator(i):
+    sleep(4)
     if i %2 == 0:
         return True
     else:
         return False
+
+def randMultiplier(i):
+    sleep(2)
+    return i * randrange(5)
 
 context = zmq.Context()
 
@@ -46,11 +51,11 @@ while True:
         sender.send_pyobj(createList())
         print("Successfully sent task list.") 
     elif s[0] == "evenCalculator":
-        sender.send_pyobj(evenCalculator(s[1]))
+        sender.send_pyobj( ["process",evenCalculator(s[1])] )
         print("Sent evenCalculator return.")
-    elif s[0] == "wait":
-        sleep(5)
-        continue
+    elif s[0] == "randMultipler":
+        sender.send_pyobj( ["task",randMultiplier(s[1])] )
+        print("Sent random multiplier return.")
     elif s[0] == "stop":
         break
 
