@@ -6,8 +6,13 @@
 
 import zmq
 import sys
-from random import randrange
+from random import randrange, randint
 from time import sleep
+
+def set_id(zsocket):
+    """Set simple random printable identity on socket"""
+    identity = u"%04x-%04x" % (randint(0, 0x10000), randint(0, 0x10000))
+    zsocket.setsockopt_string(zmq.IDENTITY, identity)
 
 #Functions that we will want to run once connected to server
 def createList():
@@ -31,13 +36,14 @@ context = zmq.Context()
 
 #  Sockets to talk to server
 print("Connecting to server...")
-receiver = context.socket(zmq.PULL)
-receiver.connect("tcp://10.0.2.2:5555")
-
-sender = context.socket(zmq.PUSH)
-sender.connect("tcp://10.0.2.2:5556")
+receiver = context.socket(zmq.REQ)
+set_id(receiver)
+receiver.connect("tcp://localhost:5555")
 
 while True:
+    #Tell server we are ready to collect something new
+    receiver.send_pyobj(["ready"])
+
     #Collect tasks from the server
     s = receiver.recv_pyobj()
 
@@ -48,14 +54,20 @@ while True:
     print(f"Received {s} from the server.")
     #Determine which task should be run
     if s[0] == "createList":
-        sender.send_pyobj(createList())
-        print("Successfully sent task list.") 
+        receiver.send_pyobj(createList())
+        print("Successfully sent task list.")
+        receiver.recv()
     elif s[0] == "evenCalculator":
-        sender.send_pyobj( ["process",evenCalculator(s[1])] )
+        receiver.send_pyobj( ["process",evenCalculator(s[1])] )
         print("Sent evenCalculator return.")
-    elif s[0] == "randMultipler":
-        sender.send_pyobj( ["task",randMultiplier(s[1])] )
+        receiver.recv()
+    elif s[0] == "randMultiplier":
+        receiver.send_pyobj( ["task",randMultiplier(s[1])] )
         print("Sent random multiplier return.")
+        receiver.recv()
+    elif s[0] == "wait":
+        sleep(5)
+        continue
     elif s[0] == "stop":
         break
 
